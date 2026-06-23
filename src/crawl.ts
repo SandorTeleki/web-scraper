@@ -105,3 +105,29 @@ export function extractPageData(html: string, pageURL: string): ExtractedPageDat
     image_urls: getImagesFromHTML(html, pageURL),
   };
 }
+
+export async function getHTML(url: string): Promise<string | undefined> {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "BootCrawler/1.0",
+      },
+    });
+
+    if (response.status >= 400) {
+      console.error(`Error: received status code ${response.status} for ${url}`);
+      return;
+    }
+
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.includes("text/html")) {
+      console.error(`Error: expected content-type text/html, got ${contentType} for ${url}`);
+      return;
+    }
+
+    return await response.text();
+  } catch (err) {
+    console.error(`Error fetching ${url}: ${err}`);
+    return;
+  }
+}
