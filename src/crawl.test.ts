@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { normalizeURL, getHeadingFromHTML, getFirstParagraphFromHTML, getURLsFromHTML, getImagesFromHTML } from "./crawl";
+import { normalizeURL, getHeadingFromHTML, getFirstParagraphFromHTML, getURLsFromHTML, getImagesFromHTML, extractPageData } from "./crawl";
 
 describe("normalizeURL", () => {
   test("strips the protocol", () => {
@@ -196,6 +196,72 @@ describe("getImagesFromHTML", () => {
     const inputBody = `<html><body><img alt="No src"><img src="/valid.png" alt="Valid"></body></html>`;
     const actual = getImagesFromHTML(inputBody, inputURL);
     const expected = ["https://crawler-test.com/valid.png"];
+    expect(actual).toEqual(expected);
+  });
+});
+
+describe("extractPageData", () => {
+  test("extracts all page data from a complete page", () => {
+    const inputURL = "https://crawler-test.com";
+    const inputBody = `
+      <html><body>
+        <h1>Test Title</h1>
+        <p>This is the first paragraph.</p>
+        <a href="/link1">Link 1</a>
+        <img src="/image1.jpg" alt="Image 1">
+      </body></html>
+    `;
+
+    const actual = extractPageData(inputBody, inputURL);
+    const expected = {
+      url: "https://crawler-test.com",
+      heading: "Test Title",
+      first_paragraph: "This is the first paragraph.",
+      outgoing_links: ["https://crawler-test.com/link1"],
+      image_urls: ["https://crawler-test.com/image1.jpg"],
+    };
+
+    expect(actual).toEqual(expected);
+  });
+
+  test("returns empty values for minimal HTML", () => {
+    const inputURL = "https://crawler-test.com";
+    const inputBody = `<html><body></body></html>`;
+
+    const actual = extractPageData(inputBody, inputURL);
+    const expected = {
+      url: "https://crawler-test.com",
+      heading: "",
+      first_paragraph: "",
+      outgoing_links: [],
+      image_urls: [],
+    };
+
+    expect(actual).toEqual(expected);
+  });
+
+  test("handles multiple links and images", () => {
+    const inputURL = "https://example.com";
+    const inputBody = `
+      <html><body>
+        <h1>Gallery</h1>
+        <p>Welcome to the gallery.</p>
+        <a href="/page1">Page 1</a>
+        <a href="https://external.com/page2">Page 2</a>
+        <img src="/img1.png" alt="One">
+        <img src="/img2.png" alt="Two">
+      </body></html>
+    `;
+
+    const actual = extractPageData(inputBody, inputURL);
+    const expected = {
+      url: "https://example.com",
+      heading: "Gallery",
+      first_paragraph: "Welcome to the gallery.",
+      outgoing_links: ["https://example.com/page1", "https://external.com/page2"],
+      image_urls: ["https://example.com/img1.png", "https://example.com/img2.png"],
+    };
+
     expect(actual).toEqual(expected);
   });
 });
