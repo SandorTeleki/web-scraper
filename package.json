@@ -1,0 +1,24 @@
+{
+  "name": "web-scraper",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "tsx ./src/index.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SandorTeleki/web-scraper.git"
+  },
+  "author": "Sandor Teleki",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SandorTeleki/web-scraper/issues"
+  },
+  "homepage": "https://github.com/SandorTeleki/web-scraper#readme",
+  "devDependencies": {
+    "@types/node": "^26.0.0",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  }
+}
