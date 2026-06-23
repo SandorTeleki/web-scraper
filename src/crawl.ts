@@ -131,3 +131,42 @@ export async function getHTML(url: string): Promise<string | undefined> {
     return;
   }
 }
+
+export async function crawlPage(
+  baseURL: string,
+  currentURL: string = baseURL,
+  pages: Record<string, number> = {},
+): Promise<Record<string, number>> {
+  // Only crawl pages on the same domain
+  const baseHost = new URL(baseURL).hostname;
+  const currentHost = new URL(currentURL).hostname;
+  if (baseHost !== currentHost) {
+    return pages;
+  }
+
+  const normalizedURL = normalizeURL(currentURL);
+
+  // If we've already visited this page, just increment and return
+  if (pages[normalizedURL]) {
+    pages[normalizedURL]++;
+    return pages;
+  }
+
+  // First visit — set count to 1
+  pages[normalizedURL] = 1;
+
+  console.log(`Crawling: ${currentURL}`);
+
+  const html = await getHTML(currentURL);
+  if (!html) {
+    return pages;
+  }
+
+  const urls = getURLsFromHTML(html, baseURL);
+
+  for (const url of urls) {
+    pages = await crawlPage(baseURL, url, pages);
+  }
+
+  return pages;
+}
