@@ -45,3 +45,45 @@ export function getFirstParagraphFromHTML(html: string): string {
 
   return "";
 }
+
+export function getURLsFromHTML(html: string, baseURL: string): string[] {
+  const dom = new JSDOM(html);
+  const doc = dom.window.document;
+  const anchors = doc.querySelectorAll("a");
+  const urls: string[] = [];
+
+  for (const anchor of anchors) {
+    const href = anchor.getAttribute("href");
+    if (!href) continue;
+
+    try {
+      const resolved = new URL(href, baseURL);
+      urls.push(resolved.href);
+    } catch {
+      // skip invalid URLs
+    }
+  }
+
+  return urls;
+}
+
+export function getImagesFromHTML(html: string, baseURL: string): string[] {
+  const dom = new JSDOM(html);
+  const doc = dom.window.document;
+  const images = doc.querySelectorAll("img");
+  const urls: string[] = [];
+
+  for (const img of images) {
+    const src = img.getAttribute("src");
+    if (!src) continue;
+
+    try {
+      const resolved = new URL(src, baseURL);
+      urls.push(resolved.href);
+    } catch {
+      // skip invalid URLs
+    }
+  }
+
+  return urls;
+}

@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { normalizeURL, getHeadingFromHTML, getFirstParagraphFromHTML } from "./crawl";
+import { normalizeURL, getHeadingFromHTML, getFirstParagraphFromHTML, getURLsFromHTML, getImagesFromHTML } from "./crawl";
 
 describe("normalizeURL", () => {
   test("strips the protocol", () => {
@@ -109,5 +109,93 @@ describe("getFirstParagraphFromHTML", () => {
   test("handles nested content in paragraph", () => {
     const html = `<html><body><p>Hello <strong>world</strong>!</p></body></html>`;
     expect(getFirstParagraphFromHTML(html)).toEqual("Hello world!");
+  });
+});
+
+describe("getURLsFromHTML", () => {
+  test("converts relative URLs to absolute URLs", () => {
+    const inputURL = "https://crawler-test.com";
+    const inputBody = `<html><body><a href="/path/one"><span>Boot.dev</span></a></body></html>`;
+    const actual = getURLsFromHTML(inputBody, inputURL);
+    const expected = ["https://crawler-test.com/path/one"];
+    expect(actual).toEqual(expected);
+  });
+
+  test("handles absolute URLs as-is", () => {
+    const inputURL = "https://crawler-test.com";
+    const inputBody = `<html><body><a href="https://other.com/page">Link</a></body></html>`;
+    const actual = getURLsFromHTML(inputBody, inputURL);
+    const expected = ["https://other.com/page"];
+    expect(actual).toEqual(expected);
+  });
+
+  test("finds all anchor tags in the body", () => {
+    const inputURL = "https://crawler-test.com";
+    const inputBody = `
+      <html><body>
+        <a href="/one">One</a>
+        <a href="/two">Two</a>
+        <a href="https://external.com/three">Three</a>
+      </body></html>
+    `;
+    const actual = getURLsFromHTML(inputBody, inputURL);
+    const expected = [
+      "https://crawler-test.com/one",
+      "https://crawler-test.com/two",
+      "https://external.com/three",
+    ];
+    expect(actual).toEqual(expected);
+  });
+
+  test("skips anchor tags without href", () => {
+    const inputURL = "https://crawler-test.com";
+    const inputBody = `<html><body><a>No href</a><a href="/valid">Valid</a></body></html>`;
+    const actual = getURLsFromHTML(inputBody, inputURL);
+    const expected = ["https://crawler-test.com/valid"];
+    expect(actual).toEqual(expected);
+  });
+});
+
+describe("getImagesFromHTML", () => {
+  test("converts relative image URLs to absolute URLs", () => {
+    const inputURL = "https://crawler-test.com";
+    const inputBody = `<html><body><img src="/logo.png" alt="Logo"></body></html>`;
+    const actual = getImagesFromHTML(inputBody, inputURL);
+    const expected = ["https://crawler-test.com/logo.png"];
+    expect(actual).toEqual(expected);
+  });
+
+  test("handles absolute image URLs as-is", () => {
+    const inputURL = "https://crawler-test.com";
+    const inputBody = `<html><body><img src="https://cdn.example.com/photo.jpg" alt="Photo"></body></html>`;
+    const actual = getImagesFromHTML(inputBody, inputURL);
+    const expected = ["https://cdn.example.com/photo.jpg"];
+    expect(actual).toEqual(expected);
+  });
+
+  test("finds all img tags in the body", () => {
+    const inputURL = "https://crawler-test.com";
+    const inputBody = `
+      <html><body>
+        <img src="/one.png" alt="One">
+        <img src="/two.jpg" alt="Two">
+        <img src="https://cdn.com/three.gif" alt="Three">
+      </body></html>
+    `;
+    const actual = getImagesFromHTML(inputBody, inputURL);
+    const expected = [
+      "https://crawler-test.com/one.png",
+      "https://crawler-test.com/two.jpg",
+      "https://cdn.com/three.gif",
+    ];
+    expect(actual).toEqual(expected);
+  });
+
+  test("skips img tags without src attribute", () => {
+    const inputURL = "https://crawler-test.com";
+    const inputBody = `<html><body><img alt="No src"><img src="/valid.png" alt="Valid"></body></html>`;
+    const actual = getImagesFromHTML(inputBody, inputURL);
+    const expected = ["https://crawler-test.com/valid.png"];
+    expect(actual).toEqual(expected);
   });
 });
