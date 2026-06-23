@@ -174,7 +174,7 @@ export async function crawlPage(
 
 export class ConcurrentCrawler {
   baseURL: string;
-  pages: Record<string, number>;
+  pages: Record<string, ExtractedPageData>;
   limit: ReturnType<typeof pLimit>;
   maxPages: number;
   shouldStop: boolean;
@@ -194,8 +194,7 @@ export class ConcurrentCrawler {
       return false;
     }
 
-    if (this.pages[normalizedURL]) {
-      this.pages[normalizedURL]++;
+    if (normalizedURL in this.pages) {
       return false;
     }
 
@@ -206,7 +205,8 @@ export class ConcurrentCrawler {
       return false;
     }
 
-    this.pages[normalizedURL] = 1;
+    // Reserve the slot to prevent concurrent duplicates
+    this.pages[normalizedURL] = null as unknown as ExtractedPageData;
     return true;
   }
 
@@ -263,10 +263,11 @@ export class ConcurrentCrawler {
       return;
     }
 
-    const urls = getURLsFromHTML(html, this.baseURL);
+    const data = extractPageData(html, currentURL);
+    this.pages[normalizedURL] = data;
 
-    const crawlPromises = urls.map((url) => {
-      const task = this.crawlPage(url);
+    const crawlPromises = data.outgoing_links.map((nextURL) => {
+      const task = this.crawlPage(nextURL);
       this.allTasks.add(task);
       task.finally(() => this.allTasks.delete(task));
       return task;
@@ -274,7 +275,7 @@ export class ConcurrentCrawler {
     await Promise.all(crawlPromises);
   }
 
-  async crawl(): Promise<Record<string, number>> {
+  async crawl(): Promise<Record<string, ExtractedPageData>> {
     await this.crawlPage(this.baseURL);
     return this.pages;
   }
@@ -284,7 +285,7 @@ export async function crawlSiteAsync(
   baseURL: string,
   maxConcurrency: number = 5,
   maxPages: number = 100,
-): Promise<Record<string, number>> {
+): Promise<Record<string, ExtractedPageData>> {
   const crawler = new ConcurrentCrawler(baseURL, maxConcurrency, maxPages);
   return await crawler.crawl();
 }
